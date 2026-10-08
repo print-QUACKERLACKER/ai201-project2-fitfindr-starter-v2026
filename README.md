@@ -59,24 +59,24 @@
 
 ### `search_listings`
 
-- **What it does:**
-- **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Searches `data/listings.json` for items whose text matches the description's keywords, filtered by size and a price ceiling.
+- **Inputs:** `description` (str) — keywords like "vintage graphic tee"; `size` (str or None) — None skips size filtering; `max_price` (float or None) — inclusive ceiling, None skips price filtering.
+- **Returns:** A list of up to 10 listing dicts, best keyword match first. Each dict has `id`, `title`, `description`, `category`, `style_tags` (list), `size`, `condition`, `price` (float), `colors` (list), `brand` (str or None), `platform`. Size matching: the listing's size is split on `/`, spaces and parentheses, and the query size must equal one of those pieces, case-insensitive — so `M` matches `M` and `S/M`, but `S` does not match `US 9` and `L` does not match `XL`.
+- **When it has nothing:** An empty list `[]` — never None, never an exception.
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Asks the model for one or two outfits built around the new item, using pieces from the user's wardrobe.
+- **Inputs:** `new_item` (dict) — one listing dict from `search_listings`; `wardrobe` (dict) — has an `items` key holding a list of wardrobe item dicts, which may be empty.
+- **Returns:** A non-empty string of outfit suggestions that name specific wardrobe pieces by name.
+- **When it has nothing:** If `wardrobe["items"]` is empty, it returns general styling advice for the item (still a non-empty string) instead of failing.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Asks the model to write a short social-media caption about the find and the outfit.
+- **Inputs:** `outfit` (str) — the string from `suggest_outfit`; `new_item` (dict) — the same listing dict.
+- **Returns:** A 2–4 sentence caption string that mentions the item, its price and its platform once each.
+- **When it has nothing:** If `outfit` is empty or only whitespace, it returns the string `"No outfit to write a fit card for."` without calling the model.
 
 ---
 
