@@ -93,13 +93,13 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put a message in `session["error"]` that says which filter ruled everything out and what to change, then stop — `suggest_outfit` is never called. Otherwise take the first result as `session["selected_item"]` and go to `suggest_outfit`, then `create_fit_card`.
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Regex, in `agent.py::parse_query`. `$30` (with or without "under") becomes `max_price`; `size M` or a standalone size like `M`/`XL` becomes `size`; whatever words are left become the `description`.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** `query` → `parsed` (description, size, max_price) → `search_results` → `selected_item` (first result) → `outfit_suggestion` → `fit_card`. Each tool reads its inputs from the session, not from the previous call's return value. On the empty path, `error` is set and `selected_item`, `outfit_suggestion` and `fit_card` stay None.
 
 ---
 
@@ -113,8 +113,29 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ python app.py ask 'vintage graphic tee under $30'
 
+  Found:    Y2K Baby Tee — Butterfly Print — $18.0 on depop
+
+  Outfit:   Outfit One:
+Pair the butterfly baby tee with your baggy dark-wash straight-leg jeans, black combat boots, and the black crossbody bag. Layer the vintage black denim jacket on top for a classic Y2K street style look.
+
+Outfit Two:
+Wear the baby tee with your wide-leg khaki trousers, brown leather belt, and chunky white sneakers. Layer your black cropped zip hoodie open over the tee for a casual, balanced contrast of fitted and baggy silhouettes.
+
+  Fit card: Just scored the absolute cutest Y2K butterfly baby tee on depop for only $18, and I’m obsessed with the nostalgic early 2000s energy. I’ve been styling it with baggy dark-wash denim and combat boots for an edgy street style look, or balancing the fitted silhouette with wide-leg trousers and chunky sneakers. It's in amazing condition and brings all the best effortless butterfly-era vibes.
+
+0 model calls this session, 2 served from cache
+```
+
+**An impossible query (the branch)**
+
+```
+$ python app.py ask 'designer ballgown size XXS under $5'
+
+  Nothing matched "designer ballgown" in size XXS under $5. No listing mentions those words at all — try a broader item type like "tee", "jeans" or "jacket".
+
+0 model calls this session
 ```
 
 **The three tools, tested one at a time**

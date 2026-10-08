@@ -13,6 +13,8 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import re
+
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
@@ -106,10 +108,105 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    session["parsed"] = parse_query(query)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    step = "search"
+    count = 0
+    while step != "done":
+        count += 1
+        trace.check_iterations(count)
+
+        if step == "search":
+            parsed = session["parsed"]
+            session["search_results"] = search_listings(
+                parsed["description"], parsed["size"], parsed["max_price"]
+            )
+            # The branch: nothing found means stop here, before suggest_outfit.
+            if not session["search_results"]:
+                session["error"] = _no_results_message(parsed)
+                step = "done"
+            else:
+                session["selected_item"] = session["search_results"][0]
+                step = "suggest"
+
+        elif step == "suggest":
+            session["outfit_suggestion"] = suggest_outfit(
+                session["selected_item"], session["wardrobe"]
+            )
+            step = "card"
+
+        elif step == "card":
+            session["fit_card"] = create_fit_card(
+                session["outfit_suggestion"], session["selected_item"]
+            )
+            step = "done"
+
     return session
+
+
+# ── query parsing ─────────────────────────────────────────────────────────────
+
+# Sizes as they appear in the data. "size M" is always read as a size; a bare
+# letter only counts when it stands alone, so the "a" in "a tee" isn't a size.
+_SIZE_WORDS = r"XXS|XS|S|M|L|XL|XXL"
+
+
+def parse_query(query: str) -> dict:
+    """
+    Pull a description, a size and a max_price out of a plain-language query,
+    with regex. "vintage graphic tee under $30, size M" becomes
+    {"description": "vintage graphic tee", "size": "M", "max_price": 30.0}.
+    """
+    text = query
+
+    max_price = None
+    price = re.search(r"(?:under|below|less than|max|up to)?\s*\$\s*(\d+(?:\.\d+)?)", text, re.I)
+    if price:
+        max_price = float(price.group(1))
+        text = text[: price.start()] + " " + text[price.end():]
+
+    size = None
+    sized = re.search(r"\bsize\s+([A-Za-z0-9.]+)", text, re.I) or re.search(
+        rf"\b({_SIZE_WORDS})\b", text
+    )
+    if sized:
+        size = sized.group(1).upper()
+        text = text[: sized.start()] + " " + text[sized.end():]
+
+    text = re.sub(r"\b(looking for|i want|i need|find me|show me)\b", " ", text, flags=re.I)
+    description = " ".join(re.sub(r"[,.!?]", " ", text).split())
+
+    return {"description": description, "size": size, "max_price": max_price}
+
+
+def _no_results_message(parsed: dict) -> str:
+    """
+    Say why the search came back empty and what to change. Re-runs the search
+    with each filter removed to find out which one ruled everything out.
+    """
+    desc, size, max_price = parsed["description"], parsed["size"], parsed["max_price"]
+    looked_for = f'"{desc}"'
+    if size:
+        looked_for += f" in size {size}"
+    if max_price is not None:
+        looked_for += f" under ${max_price:g}"
+
+    if not search_listings(desc):
+        return (
+            f"Nothing matched {looked_for}. No listing mentions those words at all — "
+            f"try a broader item type like \"tee\", \"jeans\" or \"jacket\"."
+        )
+
+    tips = []
+    if max_price is not None and search_listings(desc, size, None):
+        cheapest = min(l["price"] for l in search_listings(desc, size, None))
+        tips.append(f"raise your max price — the cheapest match is ${cheapest:g}")
+    if size and search_listings(desc, None, max_price):
+        tips.append(f"drop the size {size} filter")
+    if not tips:
+        tips.append("loosen both the size and the price")
+
+    return f"Nothing matched {looked_for}. Try: " + "; or ".join(tips) + "."
 
 
 # ── running it directly ───────────────────────────────────────────────────────
