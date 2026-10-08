@@ -120,17 +120,24 @@ $ python app.py ask '...'
 **The three tools, tested one at a time**
 
 ```
-$ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
+$ python -c "from tools import search_listings; print([(r['id'], r['title'], r['size'], r['price']) for r in search_listings('graphic tee', max_price=30)])"
+[('lst_002', 'Y2K Baby Tee — Butterfly Print', 'S/M', 18.0), ('lst_006', 'Graphic Tee — 2003 Tour Bootleg Style', 'L', 24.0), ('lst_017', 'Mesh Long-Sleeve Top — Black', 'S/M', 15.0), ('lst_033', 'Vintage Band Tee — Faded Grey', 'L', 19.0), ('lst_011', 'Low-Rise Cargo Pants — Khaki', 'W29', 27.0), ('lst_012', 'Oversized Crewneck Sweatshirt — Vintage Navy', 'XL (fits oversized)', 20.0), ('lst_015', 'Vintage Graphic Hoodie — Faded Black', 'L', 26.0)]
 
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
+Outfit 1:
+Pair the Levi's 501 jeans with the white ribbed tank top, the vintage black denim jacket, and the chunky white sneakers. Add the black crossbody bag to complete the casual, retro-casual look. 
+
+Outfit 2:
+Pair the jeans with the oversized grey crewneck sweatshirt layered over the white ribbed tank top, the black combat boots, and the brown leather belt. Finished with the black crossbody bag for a grunge-inspired everyday fit.
 
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
+$ python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
+Scored these vintage Levi's 501s on Depop for just $38 and I'm obsessed with the natural knee fading. They give off such an effortless, lived-in 90s vibe. Just threw them on with my favorite white sneakers for the ultimate casual weekend fit.
 
 ```
 
