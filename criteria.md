@@ -29,6 +29,8 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
 
+     Because we want the customer to check all related items out, even if the search isn't fully matched.
+
 ---
 
 ## 2. An impossible query stops before the second tool
@@ -39,6 +41,8 @@ Given a query that matches no listings, the agent stops before calling
 **Why this target:**
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
+
+     Because sometimes the store won't have everything you are hoping to find.
 
 ---
 
@@ -77,7 +81,7 @@ Because sometimes there are technical errors
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
-     For 5 runs on the same item, the fit card [does / does not] include the item's price — in 2 of 5 tries.
+     For 5 runs on the same item, the fit card does include the item's price — in 2 of 5 tries.
 
 
 

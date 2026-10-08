@@ -40,7 +40,7 @@
 ## What This Does
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
-
+User asks for a specific item listing. They program provides a category that describes the listing. It then will return a message.
 
 
 ---
@@ -173,17 +173,9 @@ Scored these vintage Levi's 501s on Depop for just $38 and I'm obsessed with the
      "I gave Claude my search_listings spec. It returned None on no match
      instead of an empty list, so I changed it" is the level we want. -->
 
-**Moment 1**
+     
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
-
-**Moment 2**
-
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+I used Claude to help me read through each file and help me understand the assignment properly. Sometimes, it is difficult to navigate through thousands of lines of text, so having Claude do this made me do the work more efficiently. I then asked Claude what specific items I needed to input to fill in the assignment and had it help me know where to fill in what blanks.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
