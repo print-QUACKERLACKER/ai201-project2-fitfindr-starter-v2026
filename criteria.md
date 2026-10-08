@@ -54,10 +54,12 @@ Given a query that matches no listings, the agent stops before calling
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
 
+     After a successful search, the id of the item saved in the session matches the id of the item passed to suggest_outfit — in 3 of 5 tries.
+
 
 
 **Why this target:**
-
+Because sometimes there are technical errors
 
 
 ---
@@ -75,10 +77,12 @@ Given a query that matches no listings, the agent stops before calling
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
+     For 5 runs on the same item, the fit card [does / does not] include the item's price — in 2 of 5 tries.
+
 
 
 **Why this target:**
-
+Because vague prices will throw off customers
 
 
 ---
@@ -91,10 +95,12 @@ Given a query that matches no listings, the agent stops before calling
      wardrobe path, what happens when the model can't be reached, whether the
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
-
+For 5 queries that match at least one listing, the fit card mentions the item's condition (e.g. "good") — in 4 of 5 tries.
 
 
 **Why this target:**
+
+Because you can never assume the product smells good while looking at an online listing
 
 
 
