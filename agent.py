@@ -17,8 +17,9 @@ import re
 
 import config
 import trace
-from tools import search_listings, suggest_outfit, create_fit_card
+from tools import suggest_outfit, create_fit_card
 from generate import ModelUnavailable
+from mcp_client import call_tool
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -118,9 +119,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 
         if step == "search":
             parsed = session["parsed"]
-            session["search_results"] = search_listings(
-                parsed["description"], parsed["size"], parsed["max_price"]
-            )
+            session["search_results"] = call_tool("search_listings", {
+                "description": parsed["description"],
+                "size": parsed["size"],
+                "max_price": parsed["max_price"],
+            })
             # The branch: nothing found means stop here, before suggest_outfit.
             if not session["search_results"]:
                 session["error"] = _no_results_message(parsed)
@@ -191,17 +194,17 @@ def _no_results_message(parsed: dict) -> str:
     if max_price is not None:
         looked_for += f" under ${max_price:g}"
 
-    if not search_listings(desc):
+    if not _mcp_search(desc, None, None):
         return (
             f"Nothing matched {looked_for}. No listing mentions those words at all — "
             f"try a broader item type like \"tee\", \"jeans\" or \"jacket\"."
         )
 
     tips = []
-    if max_price is not None and search_listings(desc, size, None):
-        cheapest = min(l["price"] for l in search_listings(desc, size, None))
+    if max_price is not None and _mcp_search(desc, size, None):
+        cheapest = min(l["price"] for l in _mcp_search(desc, size, None))
         tips.append(f"raise your max price — the cheapest match is ${cheapest:g}")
-    if size and search_listings(desc, None, max_price):
+    if size and _mcp_search(desc, None, max_price):
         tips.append(f"drop the size {size} filter")
     if not tips:
         tips.append("loosen both the size and the price")
@@ -242,3 +245,10 @@ if __name__ == "__main__":
         "\nThe second one should stop before the fit card. If both paths look "
         "the same,\nthe branch isn't doing anything yet."
     )
+
+
+def _mcp_search(description: str, size: str | None, max_price: float | None) -> list[dict]:
+    """search_listings, called through the MCP server like the main search."""
+    return call_tool("search_listings", {
+        "description": description, "size": size, "max_price": max_price,
+    })
