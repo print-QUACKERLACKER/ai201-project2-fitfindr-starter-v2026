@@ -195,19 +195,38 @@ I used Claude to help me read through each file and help me understand the assig
      `python run_eval.py --label before` runs everything and writes the table
      into results/. Paste it here and fill in the verdicts. -->
 
+Full output: `results/run_2026-10-13_1601_before.md` — `python run_eval.py --label before`, caching off, temperature 0.9. A diagnostic empty-wardrobe scenario also ran (5 of 5 completed with general styling advice); it isn't one of the five criteria.
+
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. matching query completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. impossible query stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. selected item reaches suggest_outfit | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card includes the price | 2 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. fit card mentions the condition | 4 of 5 | FAIL | FAIL | FAIL | FAIL | FAIL | MISSED (0/5) |
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
-```
+Criterion 5, try 1 — query `denim jacket under $50`. Trace from `agent.py::run_agent`, fit card from `tools.py::create_fit_card`. The item's condition is `excellent`; the card never mentions it.
 
+```
+[1] parse_query
+      in:  denim jacket under $50
+      out: {'description': 'denim jacket', 'size': None, 'max_price': 50.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'denim jacket', 'size': None, 'max_price': 50.0}
+      out: 7 items: Denim Jacket — Light Wash, Cropped, Vintage Levi's 501 Jeans — Medium Wash, 90s Track Jacket — Navy/White Stripe … +4 more
+      →    branch: selected lst_007, going to suggest_outfit
+[3] suggest_outfit
+      in:  new_item=lst_007 (Denim Jacket — Light Wash, Cropped), wardrobe=10 items
+      out: Outfit 1 (Denim-on-Denim Contrast): Pair the light wash Wrangler jacket with the white ribbed tank top tucked …
+[4] create_fit_card
+      in:  new_item=lst_007, outfit from session
+      out: Just scored this vintage Wrangler cropped denim jacket on Poshmark for $42 and I'm obsessed with the structure…
+
+Fit card:
+Just scored this vintage Wrangler cropped denim jacket on Poshmark for $42 and I'm obsessed with the structured shoulders. It’s a total blank canvas, so I've been wearing it non-stop—either thrown over a grey crewneck with khaki trousers for an effortless coffee run, or paired with dark-wash denim for the ultimate contrast look. Such a versatile little piece for transitional weather!
 ```
 
 ---
@@ -232,13 +251,20 @@ that produced it:
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Matching query completes all three tools | 4 of 5 | MET (5/5) | Every try reached `create_fit_card` and returned a non-empty fit card, with no `error` in the session. |
+| 2 | Impossible query stops before the second tool | 5 of 5 | MET (5/5) | Every trace ends at step 2 with `[] (empty)` and no `suggest_outfit` step; `fit_card` stayed None; every message names what to change ("try a broader item type like…"). |
+| 3 | Selected item's id matches the id passed to suggest_outfit | 3 of 5 | MET (5/5) | In each trace, the id in `branch: selected lst_001` matches `new_item=lst_001` on the `suggest_outfit` line. |
+| 4 | Fit card includes the item's price | 2 of 5 | MET (5/5) | The item is $24 (lst_006); "$24" appears in all five cards. |
+| 5 | Fit card mentions the item's condition | 4 of 5 | MISSED (0/5) | The item's condition is "excellent" (lst_007). None of the five cards mention its condition at all. Try 5 says "Such a good find!", but that's about the find, not the item's condition, so I counted it as a FAIL. |
 
 **Diagnoses**
+
+**Criterion 5 missed, 0 of 5 — the model's output, caused by my prompt in `tools.py::create_fit_card`.** The condition does reach the model: `_describe_item` puts "excellent condition" into the item line. But the prompt's rules say "Mention the item, the price and the platform once each" and never mention the condition. The model follows the explicit list, so it always includes the price and platform (which is also why criterion 4 passed 5 of 5) and treats the condition as optional background, which it drops every time. The tool, the loop and the session all worked; the prompt asks for three facts and my criterion checks for a fourth.
+
+**The pattern:** the fit card includes exactly the facts the prompt names. Price is named → 5/5. Condition isn't named → 0/5.
+
+**Honest note on targets:** four of five criteria met, and criteria 3 and 4 were met with room to spare against low targets (3 of 5, 2 of 5). Criterion 3 checks plain Python passing a dict through the session, so it should have been 5 of 5. Criterion 4 should be tightened too: the price is in the prompt's explicit rules, so anything under 5 of 5 would mean the prompt isn't being followed.
+
 
 
 
