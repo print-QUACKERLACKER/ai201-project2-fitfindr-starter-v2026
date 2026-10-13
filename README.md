@@ -369,21 +369,23 @@ Empty wardrobe — `python app.py ask 'denim jacket under $50' --empty-wardrobe 
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** One line of the prompt in `tools.py::create_fit_card`. The rules used to say "Mention the item, the price and the platform once each". They now say "Mention the item, the price ($42), its condition (excellent) and the platform (poshmark) once each", with the values filled in from the listing. Nothing else changed.
 
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** Criterion 5, which missed 0 of 5. The diagnosis was that the model only includes the facts the prompt explicitly lists, and condition wasn't on the list.
 
 ### Run Log — After
 
+Full output: `results/run_2026-10-13_1605_after.md` — `python run_eval.py --label after`, caching off, temperature 0.9.
+
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. matching query completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. impossible query stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. selected item reaches suggest_outfit | 3 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. fit card includes the price | 2 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. fit card mentions the condition | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:**
+**Did it help, and how do I know:** Yes. Criterion 5 went from 0 of 5 to 5 of 5: every card now says the jacket is in "excellent condition" (e.g. try 1: "Scored this amazing light wash Wrangler denim jacket in pristine, excellent condition on Poshmark for just $42…"). Criteria 1–4 stayed at 5 of 5, so the prompt change didn't break the price or anything upstream. One side effect: the cards now sometimes stack adjectives around the condition ("pristine, excellent", "seriously amazing, excellent"), which reads a little less natural.
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
@@ -398,7 +400,13 @@ Empty wardrobe — `python app.py ask 'denim jacket under $50' --empty-wardrobe 
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
 
+<!-- DRAFT — rewrite in my own words before submitting -->
 
+No criterion is still missed after the fix, but that's partly because some targets were low. What's still weak:
+
+- **The keyword search picks the wrong item.** `vintage band tee under $25` selects "Graphic Tee — 2003 Tour Bootleg Style" instead of the listing actually titled "Vintage Band Tee — Faded Grey", and `graphic tee` also returns cargo pants. `search_listings` counts any word that appears anywhere in the listing, so common words like "vintage" tie lots of items. Criterion 1 can't catch this because it only checks that a fit card came back, not that it was the right item. I'd weight title matches above description matches and tighten criterion 1 to check the selected item's title. I stopped because the unit allows one improvement.
+- **Criteria 3 and 4 were too easy.** 3 of 5 and 2 of 5 can't fail in any interesting way. I'd tighten both to 5 of 5.
+- **Criterion 5 was only tested on one item.** The criterion says "5 queries", but the scenario ran the same query 5 times, so I only know the fix works for one jacket in "excellent" condition. I'd add scenarios for items in "good" and "fair" condition.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
