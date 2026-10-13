@@ -256,22 +256,81 @@ that produced it:
      the same length, your branch isn't working — and this is the fastest way
      anyone will ever find that out. -->
 
-**Happy path**
+**Happy path** — `python app.py ask 'vintage graphic tee under $30' --trace`
 
 ```
-
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+      →    branch: selected lst_002, going to suggest_outfit
+[3] suggest_outfit
+      in:  new_item=lst_002 (Y2K Baby Tee — Butterfly Print), wardrobe=10 items
+      out: Outfit One: Pair the butterfly baby tee with your baggy dark-wash straight-leg jeans, black combat boots, and …
+[4] create_fit_card
+      in:  new_item=lst_002, outfit from session
+      out: Just scored the absolute cutest Y2K butterfly baby tee on depop for only $18, and I’m obsessed with the nostal…
 ```
 
-**Empty search**
+**Empty search** — `python app.py ask 'designer ballgown size XXS under $5' --trace`
 
 ```
+[1] parse_query
+      in:  designer ballgown size XXS under $5
+      out: {'description': 'designer ballgown', 'size': 'XXS', 'max_price': 5.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'designer ballgown', 'size': 'XXS', 'max_price': 5.0}
+      out: [] (empty)
+      →    branch: empty, stopping before suggest_outfit
 
+  Nothing matched "designer ballgown" in size XXS under $5. No listing mentions those words at all — try a broader item type like "tee", "jeans" or "jacket".
+
+0 model calls this session
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
+**Failure modes, triggered on purpose**
+
+Model unreachable — a fake key, `GEMINI_API_KEY=not-a-real-key`. Handled in `agent.py::run_agent` by catching `ModelUnavailable`:
+
+```
+[1] parse_query
+      in:  vintage graphic tee under $30
+      out: {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'vintage graphic tee', 'size': None, 'max_price': 30.0}
+      out: 10 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +7 more
+      →    branch: selected lst_002, going to suggest_outfit
+[3] error
+      out: ModelUnavailable
+      →    model unreachable, stopping
+
+  Couldn't reach the AI model, so there's no outfit or fit card this time. Check that GEMINI_API_KEY in your .env is correct and that you're online, then try again. (The model rejected your API key. Check GEMINI_API_KEY in your .env file, or create a fresh key at aistudio.google.com.)
+
+1 model calls this session
+```
+
+Empty wardrobe — `python app.py ask 'denim jacket under $50' --empty-wardrobe --trace`. Handled in `tools.py::suggest_outfit`, which asks for general styling advice instead (note `wardrobe=0 items`):
+
+```
+(running with an empty wardrobe)
+[1] parse_query
+      in:  denim jacket under $50
+      out: {'description': 'denim jacket', 'size': None, 'max_price': 50.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'denim jacket', 'size': None, 'max_price': 50.0}
+      out: 7 items: Denim Jacket — Light Wash, Cropped, Vintage Levi's 501 Jeans — Medium Wash, 90s Track Jacket — Navy/White Stripe … +4 more
+      →    branch: selected lst_007, going to suggest_outfit
+[3] suggest_outfit
+      in:  new_item=lst_007 (Denim Jacket — Light Wash, Cropped), wardrobe=0 items
+      out: Outfit One: Pair the cropped denim jacket with a classic white crewneck t-shirt, high-waisted black straight-l…
+[4] create_fit_card
+      in:  new_item=lst_007, outfit from session
+      out: Score! Snagged this dreamy light wash Wrangler denim jacket on Poshmark for just $42, and the structured shoul…
+```
+
+**On the MCP move:** `search_listings` is registered in `mcp_server.py`, and `agent.py::run_agent` now calls it with `mcp_client.call_tool("search_listings", {...})` instead of importing it — including the extra searches `_no_results_message` uses to work out which filter to suggest dropping. Nothing behaved differently: on three test queries (two matching, one empty) the MCP results were identical to the direct calls, empty list included, because the tool already returned plain lists of dicts. The one new thing that can go wrong is the server not starting, so `run_agent` also catches `MCPError` and tells the user to check that `python mcp_server.py` runs.
 
 
 

@@ -19,7 +19,7 @@ import config
 import trace
 from tools import suggest_outfit, create_fit_card
 from generate import ModelUnavailable
-from mcp_client import call_tool
+from mcp_client import MCPError, call_tool
 
 
 # ── session state ─────────────────────────────────────────────────────────────
@@ -110,7 +110,30 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     """
     session = new_session(query, wardrobe)
     session["parsed"] = parse_query(query)
+    trace.step("parse_query", inputs=query, returned=str(session["parsed"]))
 
+    try:
+        _loop(session)
+    except ModelUnavailable as exc:
+        session["error"] = (
+            "Couldn't reach the AI model, so there's no outfit or fit card this time. "
+            "Check that GEMINI_API_KEY in your .env is correct and that you're online, "
+            f"then try again. ({exc})"
+        )
+        trace.step("error", returned=type(exc).__name__, note="model unreachable, stopping")
+    except MCPError as exc:
+        session["error"] = (
+            "Couldn't reach the listings search server, so nothing was searched. "
+            "Check that `python mcp_server.py` starts without errors, then try again. "
+            f"({exc})"
+        )
+        trace.step("error", returned=type(exc).__name__, note="MCP server unreachable, stopping")
+
+    return session
+
+
+def _loop(session: dict) -> None:
+    """The planning loop itself: pick each step from what the last one returned."""
     step = "search"
     count = 0
     while step != "done":
@@ -128,23 +151,31 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             if not session["search_results"]:
                 session["error"] = _no_results_message(parsed)
                 step = "done"
+                note = "branch: empty, stopping before suggest_outfit"
             else:
                 session["selected_item"] = session["search_results"][0]
                 step = "suggest"
+                note = f"branch: selected {session['selected_item']['id']}, going to suggest_outfit"
+            trace.step("search_listings (via MCP)", inputs=str(parsed),
+                       returned=session["search_results"], note=note)
 
         elif step == "suggest":
-            session["outfit_suggestion"] = suggest_outfit(
-                session["selected_item"], session["wardrobe"]
+            item = session["selected_item"]
+            session["outfit_suggestion"] = suggest_outfit(item, session["wardrobe"])
+            trace.step(
+                "suggest_outfit",
+                inputs=f"new_item={item['id']} ({item['title']}), "
+                       f"wardrobe={len(session['wardrobe'].get('items', []))} items",
+                returned=session["outfit_suggestion"],
             )
             step = "card"
 
         elif step == "card":
-            session["fit_card"] = create_fit_card(
-                session["outfit_suggestion"], session["selected_item"]
-            )
+            item = session["selected_item"]
+            session["fit_card"] = create_fit_card(session["outfit_suggestion"], item)
+            trace.step("create_fit_card", inputs=f"new_item={item['id']}, outfit from session",
+                       returned=session["fit_card"])
             step = "done"
-
-    return session
 
 
 # ── query parsing ─────────────────────────────────────────────────────────────
