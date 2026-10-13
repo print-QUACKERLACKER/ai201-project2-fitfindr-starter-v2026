@@ -221,8 +221,9 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         f"Item: {_describe_item(new_item)}\n\n"
         f"How I'm styling it:\n{outfit}\n\n"
         "Rules: 2 to 4 sentences. Sound like a real person posting, not a product "
-        f"listing. Mention the item, the price (${new_item['price']:.0f}) and the "
-        f"platform ({new_item['platform']}) once each. Be specific about the vibe. "
+        f"listing. Mention the item, the price (${new_item['price']:.0f}), its "
+        f"condition ({new_item['condition']}) and the platform ({new_item['platform']}) "
+        "once each. Be specific about the vibe. "
         "Return only the caption."
     )
     return generate(prompt)
