@@ -177,6 +177,8 @@ Scored these vintage Levi's 501s on Depop for just $38 and I'm obsessed with the
 
 I used Claude to help me read through each file and help me understand the assignment properly. Sometimes, it is difficult to navigate through thousands of lines of text, so having Claude do this made me do the work more efficiently. I then asked Claude what specific items I needed to input to fill in the assignment and had it help me know where to fill in what blanks.
 
+**Unit 4:** Claude wrote the code. I managed the logistics and making sense of the logic. I had Claude read through each project file, relay back to me what steps I had to do, and explain the basic task of the FitFinder app. I checked the PASS/FAIL verdicts on the run logs, and when criterion 5 missed, I had Claude explain why it kept missing and what to do about it.
+
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
@@ -400,13 +402,11 @@ Full output: `results/run_2026-10-13_1605_after.md` — `python run_eval.py --la
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
 
-<!-- DRAFT — rewrite in my own words before submitting -->
-
 No criterion is still missed after the fix, but that's partly because some targets were low. What's still weak:
 
 - **The keyword search picks the wrong item.** `vintage band tee under $25` selects "Graphic Tee — 2003 Tour Bootleg Style" instead of the listing actually titled "Vintage Band Tee — Faded Grey", and `graphic tee` also returns cargo pants. `search_listings` counts any word that appears anywhere in the listing, so common words like "vintage" tie lots of items. Criterion 1 can't catch this because it only checks that a fit card came back, not that it was the right item. I'd weight title matches above description matches and tighten criterion 1 to check the selected item's title. I stopped because the unit allows one improvement.
 - **Criteria 3 and 4 were too easy.** 3 of 5 and 2 of 5 can't fail in any interesting way. I'd tighten both to 5 of 5.
-- **Criterion 5 was only tested on one item.** The criterion says "5 queries", but the scenario ran the same query 5 times, so I only know the fix works for one jacket in "excellent" condition. I'd add scenarios for items in "good" and "fair" condition.
+- **Criterion 5 was only tested on one item.** The fit card now shows the condition, but I only tested it on one jacket in excellent condition. I don't know yet if cards for super used or brand new items show it too.
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
