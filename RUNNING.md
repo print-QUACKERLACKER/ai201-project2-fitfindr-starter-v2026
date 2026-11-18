@@ -4,6 +4,105 @@ Everything about how the starter works and how to use it.
 
 ---
 
+## Capstone: where it runs (Path A, hosted)
+
+**URL:** https://ai201-project2-fitfindr-starter-v2026-bsqi.onrender.com
+
+There's no web page at `/`, so the bare URL returns 404 Not Found. FitFindr is an API:
+
+| Route | What it does | Try it |
+|---|---|---|
+| `GET /health` | Is it awake? `{"status":"ok"}` | open it in a browser |
+| `GET /survey` | The style survey: three questions and their allowed answers | open it in a browser |
+| `POST /ask` | Runs the agent. `query` required; `survey` and `wardrobe` optional | `curl`, below |
+| `GET /logs?n=50` | The last `n` structured log records (max 500) | open it in a browser |
+
+```bash
+URL=https://ai201-project2-fitfindr-starter-v2026-bsqi.onrender.com
+
+# no survey: picks the first search result, as before the capstone
+curl -X POST $URL/ask -H 'Content-Type: application/json' \
+  -d '{"query": "top under $40"}'
+
+# with a survey: picks the result that best matches the answers
+curl -X POST $URL/ask -H 'Content-Type: application/json' \
+  -d '{"query": "top under $40", "survey": {"style": "grunge", "colors": "dark"}}'
+
+# a bad answer: 400 with the allowed answers, no agent run
+curl -X POST $URL/ask -H 'Content-Type: application/json' \
+  -d '{"query": "top under $40", "survey": {"style": "punk"}}'
+```
+
+Read `selection_reason` in the response to see why that item was picked (`by`,
+`score` / `max_score`, `matched`, and a `note` when the survey couldn't be
+fully matched).
+
+**The first request after about 15 minutes idle takes around a minute.** The
+free instance sleeps and has to wake up. Warm requests that run the whole agent
+take about 20–25 s, mostly the two model calls.
+
+### How it got there (Render, free tier)
+
+1. Render → **New → Web Service** → connect this GitHub repo, branch `main`.
+2. Settings:
+
+   | Field | Value |
+   |---|---|
+   | Language | Python 3 |
+   | Build command | `pip install -r requirements.txt` |
+   | Start command | `gunicorn serve:app` — copy only this. Not `-k gevent`: `mcp_client` uses `asyncio.run()`, which fails under an async worker |
+   | Instance type | Free (512 MB) |
+
+3. Environment variables (Render → **Environment**):
+
+   | Key | Value | Why |
+   |---|---|---|
+   | `GEMINI_API_KEY` | your key | `.env` is gitignored and never reaches Render |
+   | `AI201_CACHE` | `0` | Every run makes real model calls, so the logged token counts are true |
+   | `PYTHON_VERSION` | `3.13.5` | Recommended, not set on this deploy. Pins Python so a new Render default can't move it to 3.14, which the dependencies don't support |
+
+4. **Save, rebuild, and deploy.** Every push to `main` redeploys automatically.
+
+### Running the same server locally
+
+```bash
+python3.13 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # paste GEMINI_API_KEY; add AI201_CACHE=0 to measure cost
+python serve.py               # http://localhost:5000, same routes as above
+```
+
+Environment: Python 3.11–3.13 (3.13.5 used); dependencies pinned in
+`requirements.txt`; no model files, because the model is Gemini over the API
+(`gemini-3.5-flash-lite`, set in `config.py`).
+
+### The log
+
+Every `/ask` request appends one JSON record to `logs/requests.jsonl` and prints
+it to stdout as `[log] {...}`, including requests rejected with a 400 and
+crashes with a 500. On Render the file is wiped when the instance sleeps or
+redeploys, so fetch it the same session and save it into the repo:
+
+```bash
+python summarize_log.py "$URL/logs?n=500" --save results/<name>.jsonl
+```
+
+That also prints a table and the per-run averages for cost: model calls,
+tokens and duration.
+
+### The capstone trials
+
+```bash
+python capstone_trials.py --label before --trial 1     # all five criteria, once
+python capstone_trials.py --label before --trial 1 --only 4
+```
+
+Each trial sends the same fixed cases (listed in `capstone_trials.py`) to the
+deployed URL and writes every raw response to
+`results/capstone_<label>_trial<N>.jsonl`.
+
+---
+
 ## Before your first class
 
 Setup happens **before class**. The [environment setup page](../pages/ide_setup)
