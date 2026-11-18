@@ -224,9 +224,25 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         f"listing. Mention the item, the price (${new_item['price']:.0f}), its "
         f"condition ({new_item['condition']}) and the platform ({new_item['platform']}) "
         "once each. Be specific about the vibe. "
+        f"If you mention the size, say it exactly as listed ({new_item['size']}) and "
+        "don't claim how it fits or runs unless the description above says so. "
+        "Plain text only: no HTML tags and no markdown. "
         "Return only the caption."
     )
-    return generate(prompt)
+    return _strip_markup(generate(prompt))
+
+
+def _strip_markup(text: str) -> str:
+    """
+    Remove HTML tags and markdown emphasis the model sometimes adds anyway.
+
+    The prompt asks for plain text, but a prompt is a request, not a guarantee —
+    a deployed fit card once came back with a literal `<i>chef's kiss</i>`.
+    """
+    text = re.sub(r"</?[a-zA-Z][^>]*>", "", text)
+    text = re.sub(r"(\*\*|__)(.+?)\1", r"\2", text)
+    text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"\1", text)
+    return text.strip()
 
 
 def _describe_item(item: dict) -> str:
