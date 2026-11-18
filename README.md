@@ -425,6 +425,16 @@ Out of scope:
 - **Questions written by the model, or a back-and-forth conversation.** The survey is three fixed questions answered in one request. Making it conversational would mean keeping state between requests on a server that handles each one on its own.
 - **Changing search or the dataset.** The survey only re-ranks what `search_listings` already returns. I didn't widen the search or fix listing tags, even where one looks wrong (the Y2K baby tee is tagged `cottagecore`).
 
+**How I Used AI**
+
+Same as unit 4, Claude wrote the code and I made the decisions. Two moments where that actually changed what I built:
+
+**Picking the extension.** I gave Claude my two ideas, a trade-in service (swap clothes you already bought for newer listings plus cash) and a survey that matches you to a collection, and asked which one fit the capstone guidelines. It said the trade-in was really four or five separate projects (tracking what you own, pricing used clothes, matching, the cash difference, updating inventory), and that nothing in the data could price a used item. It said the survey only fit if I cut it down to fixed questions that pick one listing out of the search results, not a whole collection and not a conversation. I first went with shape A (just deploy and log) because it was safer, then switched to C because I needed an actual extension, and had Claude build the cut-down survey. The trade-in and the "collection" version both went into out of scope.
+
+**Fixing what the first live run showed.** After the survey worked on Render, Claude pointed out three things in the output: the fit card had a literal `<i>chef's kiss</i>` HTML tag in it, it said the tee was "listed as a medium but fits like a small" when the listing just says S/M, and short searches like "jacket under $60" only return 3 results so the survey has nothing to choose from. I asked it to fix them. It changed the fit card prompt to plain text and the exact listed size, and added code that strips HTML anyway, since a prompt isn't a guarantee. For short searches it didn't widen the search, it made the response say when nothing matched the survey. It also said not to fix the baby tee being tagged `cottagecore` in `listings.json`, because editing the data to make the survey look better changes the system I'm testing. I agreed and left the data alone. One thing that went wrong: Claude's note "(exactly this, no -k gevent)" ended up pasted into Render's start command and the deploy crashed with a bash syntax error, so now I copy only what's inside the code block.
+
+Claude also drafted the What This Extends and The Shape sections from my notes.
+
 <!-- ═════════════════════════════════════════════════════════════════════
 
      SUBMISSION CHECKLIST — unit 3
