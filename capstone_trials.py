@@ -18,6 +18,7 @@ any survey answer) — checked against search_listings before any trial ran.
 
 import argparse
 import json
+import ssl
 import time
 import urllib.error
 import urllib.request
@@ -25,6 +26,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 DEFAULT_URL = "https://ai201-project2-fitfindr-starter-v2026-bsqi.onrender.com"
+
+# python.org's macOS Python ships without CA certificates, so HTTPS fails with
+# CERTIFICATE_VERIFY_FAILED. certifi comes in with google-genai's dependencies.
+try:
+    import certifi
+    _SSL = ssl.create_default_context(cafile=certifi.where())
+except ImportError:
+    _SSL = ssl.create_default_context()
 RESULTS = Path(__file__).parent / "results"
 
 # 1 — first result doesn't match the style answer, but some other result does.
@@ -78,7 +87,7 @@ def post(url: str, body: dict) -> tuple[int, dict, float]:
                                  headers={"Content-Type": "application/json"})
     started = time.perf_counter()
     try:
-        with urllib.request.urlopen(req, timeout=300) as resp:
+        with urllib.request.urlopen(req, timeout=300, context=_SSL) as resp:
             status, raw = resp.status, resp.read()
     except urllib.error.HTTPError as exc:
         status, raw = exc.code, exc.read()

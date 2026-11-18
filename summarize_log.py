@@ -17,6 +17,7 @@ per-run cost down to something that isn't true.
 
 import argparse
 import json
+import ssl
 import statistics
 import sys
 import urllib.request
@@ -27,7 +28,13 @@ DEFAULT = Path(__file__).parent / "logs" / "requests.jsonl"
 
 def load(source: str) -> list[dict]:
     if source.startswith("http://") or source.startswith("https://"):
-        with urllib.request.urlopen(source, timeout=120) as resp:
+        # python.org's macOS Python has no CA certificates; use certifi's.
+        try:
+            import certifi
+            ctx = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            ctx = ssl.create_default_context()
+        with urllib.request.urlopen(source, timeout=120, context=ctx) as resp:
             return json.loads(resp.read().decode("utf-8"))
     records = []
     for line in Path(source).read_text(encoding="utf-8").splitlines():
