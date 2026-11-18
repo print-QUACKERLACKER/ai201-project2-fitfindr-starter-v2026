@@ -21,3 +21,7 @@ Thumbs.db
 
 # NOTE: results/ is deliberately NOT ignored. Your run logs are evidence that
 # the test actually happened, and they're part of what gets graded. Commit them.
+
+# serve.py structured log (local scratch). Committed run records go in results/
+# via `python summarize_log.py --save results/<name>.jsonl`.
+logs/
