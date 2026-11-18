@@ -408,6 +408,13 @@ No criterion is still missed after the fix, but that's partly because some targe
 - **Criteria 3 and 4 were too easy.** 3 of 5 and 2 of 5 can't fail in any interesting way. I'd tighten both to 5 of 5.
 - **Criterion 5 was only tested on one item.** The fit card now shows the condition, but I only tested it on one jacket in excellent condition. I don't know yet if cards for super used or brand new items show it too.
 
+## Capstone
+- **What this extends: Adds a survey feature that lets the user select from a fixed amount of questions and answer them. This then redirects the user to get recommendations from the agent to help with shopping experience.
+
+- **What's new: Hosted the app through Render services, added the survey
+
+- **Out of scope: Considered trade in service with multiple steps (deemed too legnthy for this milestone)
+
 <!-- ═════════════════════════════════════════════════════════════════════
 
      SUBMISSION CHECKLIST — unit 3
