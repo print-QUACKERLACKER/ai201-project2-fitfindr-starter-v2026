@@ -16,6 +16,7 @@ Build and test your three tools in `tools.py` first. Then come here.
 import re
 
 import config
+import survey as style_survey
 import trace
 from tools import suggest_outfit, create_fit_card
 from generate import ModelUnavailable
@@ -47,12 +48,14 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "outfit_suggestion": None,   # what suggest_outfit returned
         "fit_card": None,            # what create_fit_card returned
         "error": None,               # set when the run ended early
+        "survey": None,              # capstone: validated style-survey answers, or None
+        "selection_reason": None,    # capstone: why selected_item was chosen
     }
 
 
 # ── planning loop ─────────────────────────────────────────────────────────────
 
-def run_agent(query: str, wardrobe: dict) -> dict:
+def run_agent(query: str, wardrobe: dict, survey: dict | None = None) -> dict:
     """
     Run the loop once and return the finished session.
 
@@ -109,6 +112,9 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    # Capstone: survey is optional and already validated by the caller
+    # (survey.validate); None means "pick the first result", as before.
+    session["survey"] = survey or None
     session["parsed"] = parse_query(query)
     trace.step("parse_query", inputs=query, returned=str(session["parsed"]))
 
@@ -153,9 +159,12 @@ def _loop(session: dict) -> None:
                 step = "done"
                 note = "branch: empty, stopping before suggest_outfit"
             else:
-                session["selected_item"] = session["search_results"][0]
+                index, reason = style_survey.pick(session["search_results"], session["survey"])
+                session["selected_item"] = session["search_results"][index]
+                session["selection_reason"] = reason
                 step = "suggest"
-                note = f"branch: selected {session['selected_item']['id']}, going to suggest_outfit"
+                note = (f"branch: selected {session['selected_item']['id']} "
+                        f"({reason['by']}), going to suggest_outfit")
             trace.step("search_listings (via MCP)", inputs=str(parsed),
                        returned=session["search_results"], note=note)
 
