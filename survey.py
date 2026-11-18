@@ -121,17 +121,34 @@ def pick(results: list[dict], survey: dict | None) -> tuple[int, dict]:
     breaks ties and the pick is deterministic.
     """
     if not survey:
-        return 0, {"by": "first_result"}
+        return 0, {"by": "first_result", "candidates": len(results)}
     best_i, best_score, best_matched = 0, -1, []
     for i, listing in enumerate(results):
         s, matched = score(listing, survey)
         if s > best_score:
             best_i, best_score, best_matched = i, s, matched
     max_score = sum(QUESTIONS[k]["weight"] for k in survey)
-    return best_i, {
+    reason = {
         "by": "survey",
+        "candidates": len(results),
         "position": best_i,
         "score": best_score,
         "max_score": max_score,
         "matched": best_matched,
     }
+    # A search that returns only a few results often has nothing that fits the
+    # survey. Say so, instead of presenting the top search result as if the
+    # survey had chosen it.
+    if best_score == 0:
+        reason["note"] = (
+            f"None of the {len(results)} results for this search matched your "
+            "survey answers, so this is the top search result. Try a broader "
+            "search to give the survey more to choose from."
+        )
+    elif best_score < max_score:
+        missed = [k for k in survey if f"{k}={survey[k]}" not in best_matched]
+        reason["note"] = (
+            f"Closest match out of {len(results)} results — it doesn't match your "
+            f"{' or '.join(missed)} answer."
+        )
+    return best_i, reason
