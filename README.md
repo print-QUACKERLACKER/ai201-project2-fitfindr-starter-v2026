@@ -409,11 +409,21 @@ No criterion is still missed after the fix, but that's partly because some targe
 - **Criterion 5 was only tested on one item.** The fit card now shows the condition, but I only tested it on one jacket in excellent condition. I don't know yet if cards for super used or brand new items show it too.
 
 ## Capstone
-- **What this extends: Adds a survey feature that lets the user select from a fixed amount of questions and answer them. This then redirects the user to get recommendations from the agent to help with shopping experience.
 
-- **What's new: Hosted the app through Render services, added the survey
+**What This Extends**
 
-- **Out of scope: Considered trade in service with multiple steps (deemed too legnthy for this milestone)
+This extends FitFindr, the project 2 agent that searches thrift listings, suggests an outfit with the user's wardrobe, and writes a fit card. Before the capstone it always took the first search result and only ran on my laptop.
+
+What's new is a style survey. The user answers up to three fixed questions (style, colors, how much wear they're OK with), and instead of taking the first search result the agent picks the result that best matches those answers. `GET /survey` lists the questions, `POST /ask` takes the answers as an optional `survey` field, and bad answers get a 400 that says what's allowed. With no survey, FitFindr behaves exactly as it did before. The app is now hosted on Render, and every request is written to a structured log.
+
+**The Shape**
+
+Shape C: extend one capability. The capability is survey-based selection: choosing which listing to recommend from the user's answers. Matching is done with rules over fields the listings already have (`style_tags`, `colors`, `condition`), not by the model, so it adds no cost per run and gives the same pick every time for the same answers. The hosting on Render and the structured log are the deploy-and-instrument part every shape needs.
+
+Out of scope:
+- **A trade-in service** (swap clothes you already bought for listed items plus cash). It's really four or five projects: valuing used items, matching, cash difference, inventory changes, and none of the data supports pricing.
+- **Questions written by the model, or a back-and-forth conversation.** The survey is three fixed questions answered in one request. Making it conversational would mean keeping state between requests on a server that handles each one on its own.
+- **Changing search or the dataset.** The survey only re-ranks what `search_listings` already returns. I didn't widen the search or fix listing tags, even where one looks wrong (the Y2K baby tee is tagged `cottagecore`).
 
 <!-- ═════════════════════════════════════════════════════════════════════
 
