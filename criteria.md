@@ -141,3 +141,26 @@ Because you can never assume the product smells good while looking at an online 
      A number you missed stays where it is, gets diagnosed, and gets a fix
      attempted. That's where the points are.
      ───────────────────────────────────────────────────────────────────────── -->
+
+---
+
+## Capstone criteria
+
+FitFindr is supposed to help the user find the best match, so for the survey I don't let misses get past the agent. Four of the five targets are perfect scores for that reason. Criterion 1 is the exception, and it says why.
+
+All five are tested against the deployed app on Render, three trials each. The survey picks with fixed rules, not the model, so these should come out the same every trial. If one doesn't, that's a finding.
+
+1. **For 5 query + survey pairs where the first search result does not match the survey's style answer, the survey picks a different item that does match the style answer (`selection_reason.matched` includes `style=…`), in at least 4 of 5.**
+   Why: this is the survey's whole job, so most of them have to change. I allow one miss because the pick depends on the tags in `listings.json`, and some are wrong (the Y2K baby tee is tagged `cottagecore`). A wrong tag can make the right behavior look like a miss, and that's a data problem, not the agent.
+
+2. **For 6 query + survey pairs where at least one search result matches every survey answer, the picked item scores full marks (`selection_reason.score` equals `max_score`), in 6 of 6.**
+   Why: if a perfect match is right there in the results and FitFindr picks something worse, the survey failed at the one thing it's for. No misses.
+
+3. **For 10 queries sent with no survey, the response has `selection_reason.by` equal to `first_result` and `selected_item` is the first item in `search_results`, in 10 of 10.**
+   Why: no survey has to mean nothing changed from before the capstone. Any miss means my extension broke the original app.
+
+4. **For 9 bad surveys (3 unknown answers, 3 unknown questions, 3 that aren't an object), the response is status 400 with an error that names the problem and lists what's allowed, and no agent run happens, in 9 of 9.**
+   Why: a bad answer should never crash the app or come back as a 500 the user can't act on. The caller needs to know what to fix, every time.
+
+5. **For 10 query + survey pairs where no search result matches any survey answer, the response includes `selection_reason.note` saying nothing matched, in 10 of 10.**
+   Why: without the note the user would trust a pick the survey didn't actually make. That's misleading every time it happens, so no misses.
