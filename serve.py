@@ -12,10 +12,12 @@ same `run_agent()` your CLI calls. **No new agent logic lives here.** If your
 loop works from `python app.py ask`, it works from here; if it doesn't, fix it
 there, not in this file.
 
-Three routes:
+Routes:
 
     POST /ask       {"query": "vintage graphic tee under $30",
-                     "wardrobe": {...}}     ← wardrobe is optional
+                     "wardrobe": {...},     ← wardrobe is optional
+                     "survey": {...}}       ← survey is optional (capstone)
+    GET  /survey    the style-survey questions and allowed answers (capstone)
     GET  /health    is it awake?
     GET  /logs?n=50 the last n structured log records (capstone)
 
@@ -50,6 +52,7 @@ import config  # noqa: F401
 from flask import Flask, jsonify, request
 
 import generate
+import survey as style_survey
 from agent import run_agent
 from utils.data_loader import get_example_wardrobe
 
@@ -101,6 +104,7 @@ def _summarise_session(session: dict) -> dict:
         "selected_item": {k: item.get(k) for k in ("id", "title", "price", "size", "condition")}
         if item else None,
         "outfit_chars": len(session.get("outfit_suggestion") or ""),
+        "selection_reason": session.get("selection_reason"),
         "fit_card": session.get("fit_card"),
     }
 
@@ -173,11 +177,21 @@ def ask():
     query = raw_query.strip() if isinstance(raw_query, str) else ""
     record["query"] = query if query else raw_query
     record["wardrobe_supplied"] = isinstance(payload.get("wardrobe"), dict)
+    record["survey"] = payload.get("survey")
 
+    message = None
+    survey = None
     if not query:
         # 400 rather than a stack trace: the caller can act on this one.
         message = ("Send JSON with a 'query' field, e.g. "
                    '{"query": "vintage graphic tee under $30"}')
+    else:
+        try:
+            survey = style_survey.validate(payload.get("survey"))
+        except style_survey.SurveyError as exc:
+            message = str(exc)
+
+    if message is not None:
         record.update(status=400, outcome="rejected", error=message,
                       duration_ms=round((time.perf_counter() - started) * 1000, 1))
         _write_log(record)
@@ -217,7 +231,7 @@ def ask():
         cache_before = generate._cache_hits
         agent_started = time.perf_counter()
         try:
-            session = run_agent(query, wardrobe)
+            session = run_agent(query, wardrobe, survey)
         except Exception as exc:  # noqa: BLE001 — a 500 with a sentence beats a hang
             failure = f"{type(exc).__name__}: {exc}"
         agent_ms = (time.perf_counter() - agent_started) * 1000
@@ -250,6 +264,12 @@ def ask():
     )
     _write_log(record)
     return jsonify(session)
+
+
+@app.get("/survey")
+def survey_questions():
+    """The style survey: questions and allowed answers to send back in /ask."""
+    return jsonify(style_survey.public_questions())
 
 
 @app.get("/logs")
