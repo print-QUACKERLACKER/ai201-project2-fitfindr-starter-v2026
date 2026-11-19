@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FitFindr</title>
+<meta name="description" content="Find a thrift piece that fits your style, see how to wear it, and get a caption to post.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧥</text></svg>">
+<style>
+  :root {
+    --bg: #f6f3ee;
+    --surface: #ffffff;
+    --surface-2: #f1ece4;
+    --text: #1f1b16;
+    --muted: #6b6258;
+    --line: #e2dbd0;
+    --accent: #b4532a;
+    --accent-ink: #ffffff;
+    --accent-soft: #f6e3d8;
+    --good: #2f7a4b;
+    --good-soft: #e1f1e7;
+    --warn: #8a5a00;
+    --warn-soft: #fbefd5;
+    --bad: #a12c2c;
+    --bad-soft: #f9e1e1;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(31,27,22,.06), 0 8px 24px rgba(31,27,22,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16130f;
+      --surface: #201c17;
+      --surface-2: #2a251f;
+      --text: #f2ece4;
+      --muted: #a89d90;
+      --line: #3a332b;
+      --accent: #e0814f;
+      --accent-ink: #1a120c;
+      --accent-soft: #3b2619;
+      --good: #6cc48f;
+      --good-soft: #1d3326;
+      --warn: #e5b45a;
+      --warn-soft: #3a2e17;
+      --bad: #ee8a8a;
+      --bad-soft: #3d1f1f;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  header { margin-bottom: 24px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 26px; letter-spacing: -.02em; }
+  .brand span.mark { font-size: 28px; }
+  .tagline { color: var(--muted); margin: 4px 0 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+  label.field { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .hint { color: var(--muted); font-weight: 400; }
+  input[type=text], select {
+    width: 100%;
+    font: inherit;
+    color: var(--text);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 12px;
+    outline: none;
+  }
+  input[type=text]:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip {
+    font: inherit; font-size: 13px; cursor: pointer;
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 999px; padding: 3px 10px;
+  }
+  .chip:hover { color: var(--text); border-color: var(--muted); }
+
+  fieldset { border: 0; padding: 0; margin: 20px 0 0; }
+  legend { font-weight: 600; font-size: 14px; padding: 0; margin-bottom: 10px; }
+  .survey-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 560px) { .survey-grid { grid-template-columns: 1fr; } }
+  .survey-grid label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+
+  .actions { display: flex; align-items: center; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+  button.primary {
+    font: inherit; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink);
+    border: 0; border-radius: 10px; padding: 12px 20px;
+  }
+  button.primary:disabled { opacity: .6; cursor: progress; }
+  .status { color: var(--muted); font-size: 14px; }
+
+  #result { margin-top: 24px; display: grid; gap: 16px; }
+  .item-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+  .item-title { font-size: 20px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+  .price { font-size: 22px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+  .meta li { font-size: 13px; background: var(--surface-2); border-radius: 999px; padding: 2px 10px; }
+  .desc { color: var(--muted); margin: 12px 0 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+
+  .why { border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-top: 14px; }
+  .why.full { background: var(--good-soft); color: var(--good); }
+  .why.partial { background: var(--warn-soft); color: var(--warn); }
+  .why.none, .why.first { background: var(--surface-2); color: var(--muted); }
+  .why strong { display: block; margin-bottom: 2px; }
+
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+  .outfit { white-space: pre-wrap; margin: 0; }
+  .fitcard {
+    font-size: 17px; margin: 0;
+    border-left: 3px solid var(--accent); padding-left: 14px;
+  }
+  .copy { margin-top: 12px; font: inherit; font-size: 14px; cursor: pointer;
+    background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 8px; padding: 6px 12px; }
+
+  .error { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+  .error p { margin: 0; }
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid var(--line); border-top-color: var(--accent);
+    display: inline-block; vertical-align: -3px; margin-right: 8px;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+  footer a { color: inherit; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="mark" aria-hidden="true">🧥</span> FitFindr</div>
+    <p class="tagline">Tell it what you're hunting for and your style. It finds a thrift piece, shows you how to wear it, and writes the caption.</p>
+  </header>
+
+  <form id="form" class="card" autocomplete="off">
+    <label class="field" for="query">What are you looking for?</label>
+    <input id="query" type="text" placeholder="e.g. top under $40" required maxlength="200">
+    <div class="chips" aria-label="Example searches">
+      <button type="button" class="chip">top under $40</button>
+      <button type="button" class="chip">vintage jacket</button>
+      <button type="button" class="chip">jeans</button>
+      <button type="button" class="chip">graphic tee</button>
+      <button type="button" class="chip">shoes</button>
+    </div>
+
+    <fieldset>
+      <legend>Style survey <span class="hint">(optional, so skip any you don't care about)</span></legend>
+      <div class="survey-grid" id="survey">
+        <div><label>Loading questions…</label></div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button class="primary" type="submit" id="go">Find my fit</button>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+  </form>
+
+  <section id="result" aria-live="polite"></section>
+
+  <footer>
+    Uses the example wardrobe. Listings come from depop, thredUp and poshmark sample data.
+    · <a href="/survey">/survey</a> · <a href="/logs?n=20">/logs</a> · <a href="/health">/health</a>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const $ = (sel) => document.querySelector(sel);
+  const form = $("#form"), query = $("#query"), go = $("#go"), status = $("#status");
+  const surveyBox = $("#survey"), result = $("#result");
+
+  // Example chips fill the search box.
+  document.querySelectorAll(".chip").forEach((chip) => {
+    chip.addEventListener("click", () => { query.value = chip.textContent; query.focus(); });
+  });
+
+  const pretty = (s) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+  const el = (tag, props = {}, ...kids) => {
+    const node = document.createElement(tag);
+    Object.assign(node, props);
+    kids.flat().forEach((k) => k != null && node.append(k));
+    return node;
+  };
+
+  // Survey questions come from the server, so the page can't drift from survey.py.
+  fetch("/survey")
+    .then((r) => r.json())
+    .then((questions) => {
+      surveyBox.replaceChildren();
+      for (const [key, q] of Object.entries(questions)) {
+        const id = "q-" + key;
+        const select = el("select", { id, name: key });
+        select.append(el("option", { value: "", textContent: "No preference" }));
+        q.answers.forEach((a) => select.append(el("option", { value: a, textContent: pretty(a) })));
+        surveyBox.append(el("div", {}, el("label", { htmlFor: id, textContent: q.question }), select));
+      }
+    })
+    .catch(() => {
+      surveyBox.replaceChildren(el("div", {}, el("label", { textContent: "Couldn't load the survey, but you can still search without it." })));
+    });
+
+  function showError(message) {
+    result.replaceChildren(el("div", { className: "card error" }, el("p", { textContent: message })));
+  }
+
+  function whyBox(reason) {
+    if (!reason) return null;
+    if (reason.by === "first_result") {
+      return el("div", { className: "why first" },
+        el("strong", { textContent: "Top search result" }),
+        "No survey answers, so this is the best match for your search.");
+    }
+    const full = reason.score === reason.max_score;
+    const cls = full ? "full" : reason.score === 0 ? "none" : "partial";
+    const matched = (reason.matched || []).map((m) => pretty(m.split("=")[1])).join(", ");
+    const title = full
+      ? `Matches all your answers (${matched})`
+      : reason.score === 0 ? "Nothing matched your survey" : `Partial match: ${matched}`;
+    const detail = reason.note || `Best of ${reason.candidates} results for your search.`;
+    return el("div", { className: "why " + cls }, el("strong", { textContent: title }), detail);
+  }
+
+  function render(data) {
+    const item = data.selected_item;
+    const cards = [];
+
+    if (item) {
+      const meta = el("ul", { className: "meta" },
+        el("li", { textContent: "Size " + item.size }),
+        el("li", { textContent: pretty(item.condition) + " condition" }),
+        el("li", { textContent: item.platform }),
+        item.brand ? el("li", { textContent: item.brand }) : null);
+      const tags = el("div", { className: "tags" },
+        (item.style_tags || []).map((t) => el("span", { className: "tag", textContent: t })));
+      cards.push(el("article", { className: "card" },
+        el("div", { className: "item-head" },
+          el("h1", { className: "item-title", textContent: item.title }),
+          el("div", { className: "price", textContent: "$" + Number(item.price).toFixed(0) })),
+        meta,
+        el("p", { className: "desc", textContent: item.description }),
+        tags,
+        whyBox(data.selection_reason)));
+    }
+
+    if (data.error) {
+      cards.push(el("div", { className: "card error" }, el("p", { textContent: data.error })));
+    }
+
+    if (data.outfit_suggestion) {
+      cards.push(el("section", { className: "card" },
+        el("h2", { textContent: "How to wear it" }),
+        el("p", { className: "outfit", textContent: data.outfit_suggestion })));
+    }
+
+    if (data.fit_card) {
+      const copy = el("button", { type: "button", className: "copy", textContent: "Copy caption" });
+      copy.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(data.fit_card); copy.textContent = "Copied ✓"; }
+        catch { copy.textContent = "Select and copy the text above"; }
+      });
+      cards.push(el("section", { className: "card" },
+        el("h2", { textContent: "Your fit card" }),
+        el("p", { className: "fitcard", textContent: data.fit_card }),
+        copy));
+    }
+
+    result.replaceChildren(...cards);
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const q = query.value.trim();
+    if (!q) return;
+
+    const survey = {};
+    surveyBox.querySelectorAll("select").forEach((s) => { if (s.value) survey[s.name] = s.value; });
+    const body = { query: q };
+    if (Object.keys(survey).length) body.survey = survey;
+
+    go.disabled = true;
+    status.replaceChildren(el("span", { className: "spinner" }), "Finding your fit… usually 10–30 seconds.");
+    result.replaceChildren();
+    const slow = setTimeout(() => {
+      status.replaceChildren(el("span", { className: "spinner" }),
+        "Still working. If the app was asleep it takes about a minute to wake up.");
+    }, 25000);
+
+    try {
+      const resp = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const text = await resp.text();
+      let data;
+      try { data = JSON.parse(text); }
+      catch {
+        // Not JSON: the server itself failed (e.g. gunicorn timed the request out).
+        showError(`The server had a problem (HTTP ${resp.status}). Please try again in a moment.`);
+        return;
+      }
+      if (!resp.ok) { showError(data.error || `Something went wrong (HTTP ${resp.status}).`); return; }
+      render(data);
+    } catch {
+      showError("Couldn't reach FitFindr. Check your connection and try again.");
+    } finally {
+      clearTimeout(slow);
+      go.disabled = false;
+      status.textContent = "";
+    }
+  });
+})();
+</script>
+</body>
+</html>

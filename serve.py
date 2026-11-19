@@ -151,6 +151,12 @@ def _summarise_session(session: dict) -> dict:
 _one_at_a_time = threading.Lock()
 
 
+@app.get("/")
+def home():
+    """The web page: a search box and the survey, calling /ask. No agent logic."""
+    return app.send_static_file("index.html")
+
+
 @app.get("/health")
 def health():
     """Is the server awake? A host pings something like this to find out."""
